@@ -1,5 +1,0 @@
-The goal of this problem is to take a program that raises one number to another and rewrite it in a few different ways:
-
-1: A recursive formulation.
-2: A memoized dynamic programming formulation.
-3: A bottom-up (iterative) dynamic programming formulation.
