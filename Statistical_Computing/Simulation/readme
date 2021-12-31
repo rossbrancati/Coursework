@@ -1,0 +1,1 @@
+The goal of this problem is to create a bot that generates the best word availible for the word game in the testing problem. It uses a monte carlo simulation approach to generate the best word.
