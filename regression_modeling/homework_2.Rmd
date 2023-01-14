@@ -1,0 +1,197 @@
+---
+title: "Homework 2"
+author: "Ross Brancati"
+date: "9/19/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_2")
+```
+
+## 1: Problem 2.2
+### 2.2.1 
+The points above the solid line represent cities that had an increase in rice price from 2003 to 2009 and points below the line represent cities that had a decrease in rice price.
+
+### 2.2.2 
+Vilnius had the largest increase in price and Mumbai has the largest decrease in price. 
+
+### 2.2.3 
+No, it does not suggest that prices were lower in 2009 than they were in 2003. At first, the slope may lead someone to believe this, but there is an intercept at around 17 on the 2009 axis. Points on the line y=x have the same rice price in 2003 and 2009. Points above the line with a 2003 price difference of less than about 25 have a greater rice price in 2009 compared to 2003, where 25 is the point where the OLS line intersects the y=x line.
+
+### 2.2.4
+1) From a visual inspection, it looks like this figure would be better suited for a curved regression line, not simple linear regression. 
+
+2) Additionally, is looks like the outliers such as Seoul, Nairobi, and Mumbai are influencing the linear fit by a lot. If you remove these data points, the OLS would have a larger slope and fit the data much better. 
+
+
+## 2: Problem 2.3
+### 2.3.1
+Changing the data to a log scale makes it appear more linear and have a more consistent variability across data points. Also, the data points do not look as right skewed in this plot and the outliers from 2.2 (Seoul, Nairobi, and Mumbai) do not influence the OLS line as much. Overall, using log-scale appears better fit linear regression.
+
+### 2.3.2 
+If $\beta_1$>0, the model will have exponential growth and $\gamma_0$ will act as a scaling factor. Since $\beta_0$ = log($\gamma_0$), a $\gamma_0$>1 would result in an upwards shift and a negative $\gamma_0$>1 would result in a downwards shift of the model.
+
+
+## 3: Problem 2.9
+### 2.9.1
+$$E(Y|Z=z) = \gamma_0 + \gamma_1(ax+b)$$
+$$= \gamma_0 + \gamma_1ax + \gamma_1b$$
+$$= (\gamma_0 + \gamma_1b) + (\gamma_1a)x$$
+So $\beta_0 = \gamma_0 + \gamma_1b$ and $\beta_1 = \gamma_1a$ and 
+$$E(Y|Z=z) = \beta_0 + \beta_1x$$
+Therefore,
+$$\gamma_1 = \beta_1/a$$
+$$\gamma_0 = \beta_0 - \beta_1b/a$$
+Multiplying the predictor by a ends up dividing the slope of the regression model by a and adding in the b term changes the intercept term of the regression model. So, since Y is unchanged, the estimate of the variance in the two regressions does not change. The t-tests will show that the intercept is different, but the slope being equal to 0 will not change. 
+
+### 2.9.2
+$$E(Y|X=x) = \beta_0 + \beta_1x$$
+Replacing Y by V=dY yields:
+$$E(dY|X=x) = d\beta_0 + d\beta_1x$$
+$$E(V|X=x) = d\beta_0 + d\beta_1x$$
+The slope and intercept, along with all of their estimates, are multiplied by a factor of d. Estimate of variance is also multiplied by d, but quantities that don't depend on a scalar are unchanged, such as test statistics and $R^2$.
+
+## 4: Problem 2.15
+### 2.15.1
+```{r}
+#summarize data
+summary(wblake)
+#generate 95% intervals
+m1 <- lm(Length ~ Age, wblake)
+m1.predict <- predict(m1, data.frame(Age=c(2, 4, 6)), interval="prediction")
+m1.predict
+```
+
+### 2.15.2
+```{r}
+predict(m1,data.frame(Age=c(9)),interval="prediction")
+```
+From the data summary in 2.15.1, we see that the age range only goes up to 8, so predicting on an age outside of that range may be untrustworthy. 
+
+
+## 5: Problem 2.16
+### 2.16.1
+```{r}
+m2_16_1 <- lm(log(fertility) ~ log(ppgdp), data=UN11)
+summary(m2_16_1)
+```
+
+### 2.16.2
+```{r}
+plot(log(fertility) ~ log(ppgdp), 
+     data=UN11,
+     xlab="Gross National Product Per Person in U.S Dollars",
+     ylab="Birth Rate Per 1000 Females")
+abline(m2_16_1, col="blue")
+```
+
+### 2.16.3
+```{r}
+test_stat <- -0.20715/0.01401
+p_value <- pt(-abs(test_stat), 197)
+p_value
+```
+
+With a significance level of 0.05, we reject the null hypothesis that the slope is 0 because the p-value is less than 0.05.
+
+### 2.16.4
+```{r}
+summary(m2_16_1)
+```
+
+The coefficient of determination, $R^2$ is 0.526. This means that about half, 52.6% to be exact, of the variability in the observed values of log(fertility) can be explained by log(ppgdp).
+
+### 2.16.5
+```{r}
+prediction <- predict(m2_16_1, data.frame(ppgdp=1000), interval="prediction", level=0.95)
+prediction
+```
+A 95% prediction interval for fertility is $0.6258791 \leq fertility \leq 1.843256$.
+
+### 2.16.6
+```{r}
+#Parts 1 and 2: max and min localities 
+max_location <- UN11[UN11$fertility == max(UN11$fertility),][1]
+print(max_location)
+min_location <- UN11[UN11$fertility == min(UN11$fertility),][1]
+print(min_location)
+
+#Part 3: 199 total localities
+#largest positive residuals
+print(sort(residuals(m2_16_1))[198])
+print(sort(residuals(m2_16_1))[199])
+#largest negative residuals
+print(sort(residuals(m2_16_1))[1])
+print(sort(residuals(m2_16_1))[2])
+
+
+
+```
+The locality with the highest value of fertility is Niger, Africa and the locality with the lowest value of fertility is Bosnia and Herzegovina, Europe. 
+
+The two localities with the largest positive residuals are Angola and Equatorial Guinea. The two localities with the largest negative residuals are Bosnia and Herzegovina and Moldova. 
+
+## 6: Prediction interval or confidence interval? 
+A prediction interval would be wider for a new value $y_*$ because prediction intervals account for the uncertainty in estimating the population mean and the random variation in the indiivdual values. A confidence interval does not account for the random variation in indiviual values, and so it would not be as wide. 
+
+
+## 9: Problem 2.13
+### 2.13.1
+```{r}
+m2_13_1 <- lm(dheight ~ mheight, data=Heights)
+summary (m2_13_1)
+```
+The test statistic $R^2 = 0.241$ means that about a quarter of the variability in in daughter's height is explained by mother's height. The p-value of the t-statistic (<2e-16) implies that $\beta_1 \neq 0$
+
+### 2.13.2
+```{r}
+confint(m2_13_1, level=0.99)
+```
+The 99% confidence interval is $0.4747836 \leq \beta_1 \leq 0.6087104$.
+
+### 2.13.3
+```{r}
+predict(m2_13_1, data.frame(mheight=64), interval="prediction", level=0.99)
+```
+The model predicts that a daughter's height ($d_{height}$), given a mother's height of 64 inches, will be 64.58925 with a 99% confidence interval of $58.74045 \leq d_{height} \leq 70.43805$
+
+
+## 10: Problem 2.4
+### 2.4.1
+```{r}
+plot(UBSprices$bigmac2003, UBSprices$bigmac2009,
+     xlab="2003 Big Mac Prices",
+     ylab="2009 Big Mac Prices")
+abline(lm(UBSprices$bigmac2009~UBSprices$bigmac2003), col="blue")
+abline(0,1, col="red")
+```
+To me, the most unusual cases are the points that fall on the lower side of the red line because these points indicate that the price of a big mac went down from 2003 to 2009, which seems counterintuitive given inflation and the typical trend of increasing food prices over time. 
+
+### 2.4.2
+First, it does not appear that there is a good linear fit of these data points and that the variability is not consistent across either axis. Secondly, the distribution appears to be skewed because most of the data points lie in the bottom left corner. 
+
+### 2.4.3
+```{r}
+plot(log(UBSprices$bigmac2003), log(UBSprices$bigmac2009),
+     xlab="2003 Big Mac Prices",
+     ylab="2009 Big Mac Prices")
+abline(lm(log(UBSprices$bigmac2009)~log(UBSprices$bigmac2003)), col="blue")
+```
+Once we take the log of these data, a linear fit seems much more appropriate, the variability is more consistent across data points on both axes, and there are not as many outliers. 
+
+## 11: Problem 2.5
+```{r}
+m2_5 <- lm(Early ~ Late, data=ftcollinssnow)
+summary(m2_5)
+```
+Since the p-value is 0.124, we fail to reject the null hypothesis (NH: $\beta_1 = 0$) suggesting that Early and Late season snowfall are not related.
+
