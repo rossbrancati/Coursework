@@ -1,0 +1,152 @@
+---
+title: "Homework 6"
+author: "Ross Brancati"
+date: "10/18/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_6")
+```
+
+## 1: Problem 6.2
+Lets start by going back to the plot 5.2 of lifeExpF versus log(ppgdp). The three groups are shown by three different symbols (open circle, closed circle, and a plus sign). Model 6.7 generates a mean function for each level of group but ignores log(ppgdp), and model 6.8 has a common slope and intercept for each group. The text first tests the most general mean function - NH: mean function 6.9 to AH: mean function 6.10, which has a p-value of 0.79 which provides no evidence of the need to separate slopes for different groups. So, since the slopes (beta coefficients) of all the groups are the same when testing lifeExpF versus log(ppgdp), there is no reason to perform an F-test to compare models 6.7 and 6.8 because the slope of the lines for each group is the same, and therefore you do not need to consider the groups independently. The test above comparing 6.9 and 6.10 is testing how the addition of the interaction of group:log(ppgdp) affects the significance, and since the p-value is not significant, there is no need to test 6.7 vs. 6.8.
+
+## 2: Problem 6.5
+### 6.5.1
+```{r}
+#fit and summarize model
+m1 <- lm(lifeExpF ~ group + log(ppgdp), data=UN11)
+summary(m1)
+```
+The base for the group factor is oecd because the other and africa groups show up in the model summary. Since the p-value for the other group is 0.193, there is no evidence that the intercept is different between the oecd and other levels of the group factor in this model.
+
+### 6.5.2
+This one is a bit harder. We need to assign the baseline group and repeat the test from above. 
+```{r}
+#set base group
+base_group = relevel(UN11$group, "other")
+#update the first model accounting for the new base group
+m2 <- update(m1, ~ log(ppgdp)*base_group, data=UN11)
+summary(m2)
+```
+After changing the base group, we see that the p-value for the africa group has a p-value of 0.0295. This is less than 0.05, and therefore provides evidence suggesting that the intercepts for group other and africa are different. 
+
+## 3: 6.10
+### 6.10.1
+```{r}
+#fit model and summarize coefficients
+m3 <- lm(quality ~ gender + numYears + pepper + discipline + easiness + raterInterest, data=Rateprof)
+summary(m3)$coef
+```
+
+```{r}
+#load the multcomp library to use the generalized linear hypothesis function
+library(multcomp)
+```
+
+
+### Test 1: NH: $\beta_2 = 0$ vs AH: $\beta_2 \neq 0$
+```{r}
+m4 <- glht(model=m3, linfct=c("numYears=0"))
+summary(m4)
+```
+The significance level of p=0.0808 provides evidence for accepting null hypothesis, and therefore we can conclude that the regression coefficient associated with numYears is not different from 0. 
+
+### Test 2: NH: $\beta_2 = 0$ vs AH: $\beta_2 \leq 0$
+```{r}
+m5 <- glht(model=m3, linfct=c("numYears<=0"))
+summary(m5)
+```
+The significance level of p=0.0404 provides evidence for rejecting the null hypothesis (and accepting the alternative hypothesis), and therefore we can conclude that the regression coefficient associated with numYears is less than or equal to 0. 
+
+### Test 3: NH: $\beta_2 = 0$ vs AH: $\beta_2 \geq 0$
+```{r}
+m6 <- glht(model=m3, linfct=c("numYears>=0"))
+summary(m6)
+```
+The significance level of p=0.96 provides evidence for accepting null hypothesis, and therefore we can conclude that the regression coefficient associated with numYears is not greater than or equal to 0.
+
+### 6.10.2
+```{r}
+#Type II ANOVA table
+Anova(m3)
+
+#regression coefficient tables squared
+summary(m3)$coef[ ,3]^2
+```
+By calculating the square values of the t-tests, we see that they are exactly the F-tests in the Type II anova table. The results of the tests show that the quality of a professor is dependent on pepper (physical attractiveness), discipline, easiness, and raterInterest (the interest in course material of a given rater) because these are all significant in the anova type II table. The other factors, gender and number of years experience teaching, do not appear to matter in the quality of the professor. 
+
+### 6.10.3
+```{r}
+#effects plot for discipline
+plot(effect('discipline', m3))
+```
+We see that the quality of the professor could depend on the discipline that they are teaching. For example, the quality of a STEM professor looks about 0.3 points greater than humanities or social science disciplines and about 0.2 points greater than a pre-professional discipline. To gather some more information, we can look at the coefficients of the model to how the model depends on specific disciplines. 
+```{r}
+summary(m3)$coef
+```
+From the above coefficients, we see that the social science and pre-professional have higher p-values compared to STEM (here, humanities is the base discipline). This confirms what the effects plot is showing - the reason that the discipline is significant in the anova in 6.10.2 is mainly driven by the STEM discipline compared to the other three disciplines. Overall, this means that the quality of a professor is greater those that are in STEM disciplines.
+
+### 6.10.4
+```{r}
+plot(allEffects(m3))
+```
+From the type II anova table in part 6.10.2, we see that quality depends on pepper, discipline, easieness, and raterInterest, but does not depend on gender or numYears. The plot of allEffects of our model confirms these results. Quality does not look like it significantly changes if the professor is male or female, and does look to increase with the years of experience, but not by a lot. The other predictors do appear to significantly impact the quality. For example, a professors that is more attractive has higher quality. Additionally, easier professors and courses that are more interesting to the raters increase the quality rating. Discipline was already discussed, so I won't review that again. 
+
+## 4: Problem 6.14
+### 6.14.1
+```{r}
+#fit model and summarze
+mA <- lm(log(acrePrice) ~ year, data=MinnLand)
+summary(mA)
+```
+This model says that the price per acre over time, when transformed to the log scale, is dependent on the year. I hypothesize that the price of an acre increases as year increases, but to really see how price is changing as a function of the year, we can plot these two variables. 
+
+```{r}
+#create plot
+plot(log(acrePrice) ~ year, data=MinnLand)
+```
+The plot shows that the price of an acre increases as year increases, which agrees with the above hypothesis.  
+
+### 6.14.2
+```{r}
+#convert year to fyear
+fyear <- as.factor(MinnLand$year)
+#fit model
+mB <- lm(log(acrePrice) ~ 1 + fyear, data=MinnLand)
+summary(mB)
+```
+This model says that the price per acre was not dependent on the year 2003, but was dependent on all years following 2003 up through 2011. In other years, from 2002 (the first year in this dataset) to 2003, the price per acre did not increase. Following 2003, it did increase with the year. Lets also plot this to visualize what is going on. 
+
+```{r}
+#create plot
+plot(log(acrePrice) ~ 1+ fyear, data=MinnLand)
+```
+The plot confirms the above statement. The boxplots show that the acre price did not increase from 2002 to 2003, but steadily increased from 2003 up through 2011. 
+
+### 6.14.3
+Model A treats year as a continuous variable and the summary of the regression model displays that the slope of the line of mean function of log(acrePrice) ~ year is significant ($\beta = 1.005e-01, p<0.001$). Model B is therefore a special case of model A because we have transformed year into a factor with as many levels as there are years in the data. This model shows that the increase in log(acrePrice) comes after the year 2003 because there was no increase in price from years 2002 to 2003. Model A would not show this, but separating year into many levels does bring out this characteristic of the model. Therefore, since these models have different factors and yield different results about the exact years that are significant, we can perform a hypothesis test to test between the two models. This hypothesis test would tell us to treat year as continuous variable or a factor with many levels, and if the results showed significance, we could reasonably say that year should be treated as a factor with many levels.
+
+### 6.14.4
+```{r}
+anova(mA, mB)
+```
+The significance of this anova shows that year should be treated as a factor with many levels. The lack-of-fit tests shows that fitting year as a continuous variable is not an adequate description of the change in log(acrePrice) over time. It is more appropriate to consider year as fyear to understand how the price changes within each of the levels of year. 
+
+
+## 5: "Why Most Published Research Findings are False"
+Lets say that all tests are done at a level of $\alpha$ and have the same probability of detecting a false NH of $\gamma$. In this summary, TD = true discovery and FD = false discovery. $Prob(TD) = f\gamma$ and $Prob(FD) = (1-f)\alpha$. The conditional probability of a TD given any discovery is given by $Prob(TD|discovery) = \frac{f\gamma}{f\gamma - (1-f)\alpha}$. When they plotted this function in the book, this conditional probability increases as a function of the fraction (f) of potential discoveries. So, for a low level of alpha, say $\alpha = 0.05$, and a high f, say $f=0.05$, $Prob(TD|discovery)=0.99$, so we can confidently say that a rejected null hypothesis is a TD. If f is lower, say $f=0.0625$, then $Prob(TD|discovery)=0.5$, so we are 50-50 on if a rejected null hypothesis is either a TD or FD. Lastly, if $f=0.01$, then $Prob(TD|discovery)=0.13$, and we can say that a rejected null is most likely a FD. 
+
+Researchers typically design experiments and their associated tests with previous findings in mind, so we would hope for $f \geq 0.5$, which would lead to a high $Prob(TD|discovery)$. However, this high $f$ is not always true. The book used the example of a study of 100,000 genes, where only 10 were associated with the disease. So $f = \frac{10}{100,000} = 0.001$ which would lead to a very low $Prob(TD|discovery)$, and therefore the probability that the findings are FD's is very high. To conclude, a lower $f$ leads to an increased probability of FD, which is plausible given the nature of modern research experiments. 
+
+
+
