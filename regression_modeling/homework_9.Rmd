@@ -1,0 +1,122 @@
+---
+title: "Homework 9"
+author: "Ross Brancati"
+date: "11/8/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_9")
+```
+
+
+```{r}
+help(step)
+
+```
+
+## 1: Problem 10.3
+```{r message=FALSE, warning=FALSE}
+#fit model
+m0 <- lm(Y~1, data=mantel)
+#forward selection algorithm
+step(m0, scope=~X1+X2+X3, direction="forward")
+```
+
+```{r message=FALSE, warning=FALSE}
+#fit model
+m1 <- lm(Y~X1+X2+X3, data=mantel, k=log(n))
+#backwards elimination algorithm
+step(m1, scope=~1, direction="backward")
+```
+
+Backward elimination selects to remove none of the regressors, because the AIC is minimized for this model (the goal of this approach is to minimize AIC). At first glance, it looks like the AIC is minimized by removing the X3 term, but at closer glance, we see that the residual sum of squares for the model removing no regressors and removing X3 is the same. Thus, we conclude that the difference in AIC between these two models is from rounding errors with this process. So, X3 can still be deleted, and we achieve the exact fit. Additionally, we would like to use as few regressors as possible to maximize the degrees of freedom, so the best model would be achieved using only X1 and X2 as regressors. I also tested BIC by changing the k argument in the step() function to k=log(n), but the AIC and BIC scores stayed the same. To conclude, the active regressors appear to be X1 and X2 using backward elimination.
+
+
+## 1: Problem 10.5
+The first step is to do an exploratory data analysis, which starts with creating a scatterplot matrix.
+```{r}
+#scatterplot matrix
+scatterplotMatrix(~Day+BOD+TKN+TS+TVS+COD+O2UP,data=dwaste)
+```
+The scatterplot matrix shows that O2UP is on a scale greater than one order of magnitude, so lets try log transforming this variable and recreating the scatterplot matrix. 
+
+```{r}
+#scatterplot matrix
+scatterplotMatrix(~Day+BOD+TKN+TS+TVS+COD+log(O2UP),data=dwaste)
+```
+Clearly, log transforming O2UP gives us a better fit across all possible predictors. There is one point of TVS that looks like an outlier. Unfortunately we cannot label points in a scatterplot matrix, but by looking at the data matrix, I found that this point is the 17th entry in the table. Lets try removing that and re-plotting
+
+```{r}
+scatterplotMatrix(~Day+BOD+TKN+TS+TVS+COD+log(O2UP),data=dwaste[-c(17), ])
+```
+Removing that outlier shows that TVS has linear relationships with many of the potential predictors. 
+
+The powerTransform function uses the maximum likelihood-like approach of Box and Cox to select a transformation or multivariate response, linearity, and/or constant variance (Rdocumentation). This will tell us if transforming the variables will add any additional information.  
+
+```{r}
+#fit power transformation and summarize
+m2 <- powerTransform(cbind(BOD, TKN, TS, TVS, COD) ~ 1, data=dwaste[-c(17), ])
+summary(m2)
+```
+Since the p-value for both the transformed and non-transformed data are both very close to 0.05, we determine that either option will yield similar results and so we decide to not transform these predictors. This allows us to log-transform the response (O2UP) using Box Cox or inverse response plots. The next step is to look at residuals by plotting them.
+
+```{r}
+#first, we fit a model with the response
+m3 <- lm(log(O2UP)~BOD+TKN+TS+TVS+COD, data=dwaste[-c(17), ])
+#then we plot residuals with Tukey test for non-additivity
+residualPlots(m3)
+```
+The residual plots and Tukey test for non-additivity show that untransformed predictors with log(O2UP) as the response are not adequate. Now we check the diagnostic to see if any of the observations are highly influential for fitting the model. 
+
+```{r}
+#diagnostic plots
+influenceIndexPlot(m3)
+```
+The diagnostic plots show that observation 1 is highly influential, so lets try removing that from the model, refitting, and checking residual plots.
+
+```{r}
+#first, we fit a model with the response
+m3 <- lm(log(O2UP)~BOD+TKN+TS+TVS+COD, data=dwaste[-c(1, 17), ])
+#then we plot residuals with Tukey test for non-additivity
+residualPlots(m3)
+```
+Now we see that the model fit is adequate. The next step is to use stepwise selection to see which of the predictors are active.
+```{r message=FALSE, warning=FALSE}
+#fit model
+m4 <- lm(log(O2UP)~1, data=dwaste[-c(1, 17), ])
+#forward selection algorithm
+step(m4, scope=~BOD+TKN+TS+TVS+COD, direction="forward")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+#fit model
+m5 <- lm(log(O2UP)~BOD+TKN+TS+TVS+COD, data=dwaste[-c(1, 17), ])
+#backwards elimination algorithm
+step(m5, scope=~1, direction="backward")
+```
+
+Both forward selection and backward elimination show that TS is the active predictor as it minimizes AIC. Going back to the scatterplot matrix shows that the plot of log(O2UP) vs. TS displays the most linear relationship, so we can confirm that TS is the only active regressor. The outliers and influential data points (observations 1 and 17) should also be addressed - looking back at the original dataset, the values of these two observations are within the expected values for TS, so removing them is not impacting the results presented in this diagnostic analysis. There are many diagnostics mentioned above that support the need of transforming O2UP to a logarithmic scale.
+
+
+## 3: Gender Discrimination in Wages Questions
+### Part A
+No, I am not satisfied with this selection of model terms. If we are looking for the relationship between wages and gender, and include data on previous wages in our model, the previous wages predictor will mask the potential effect of gender on current wages as previous wages are likely to be highly correlated with current wages. We can't really conclude anything about gender and wages using this process because the previous wages predictor is going to dominate as the active regressor in the model. 
+
+### Part B
+Stepwise based variable selection may be misleading in some cases because it can lead to variability of the optimal model selection. The AIC that is calculated using stepwise methods gives us the most active regressor(s) that achieve the lowest AIC score. This does not mean that gender is not an important determinant of wages, it just means that the model with previous wage, years experience, and job title may be better predictors of determining wage. Gender may also be important, but we may need to think about this predictor in different ways. For example, we could generate two models - one with male gender and one with non-male gender, then perform some tests to see how gender may be influential on wages. Additionally, we could isolate gender and wages and run additional tests. If you were looking for prediction accuracy, for example, gender may not contribute much to improving predidciton accuracy over using the terms in this model, but that does not mean that it is not important for determining wages. This is why you need to keep the situation and research question in mind when running statistical analyses. 
+
+### Part C
+It is not uncommon for re-scaled variables to behave differently compared to their non-scaled counterparts. According to the book, if a regressor is divided by a constant C, then the corresponding regression coefficient is multiplied by C, so a penalty should be applied that depends on the size of the coefficients. The size of this penalty is dependent on the magnitude of the coefficient. Adding this penalty term to the model could cause the variables to behave differently. In conclusion, penalized models can give different results if the variables are scaled in different ways. 
+
+### Part D
+As mentioned in part B, we need to keep the question in mind when building these models. We are interested in looking for gender discrimination in wages. I would first start by exploring how different regressors are related to wages based on the two gender groups (men vs. non-men). Once I understand the relationship between gender and wages, I could then begin building models and testing various regressors to see which ones are most influential on the wages. There are many possibilities to test, but luckily this can be automated through programming languages like R. Carefully stepping through this process minimizes the potential of masking a relationship between gender and wages by other regressors such as previous experience or last year's wage. I could also use a stepwise approach such as forward selection or backward elimination to understand which regressors are most active. Care should be taken in this process by keeping the original research question in mind. 
