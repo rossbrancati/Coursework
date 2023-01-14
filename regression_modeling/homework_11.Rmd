@@ -1,0 +1,217 @@
+---
+title: "Homework 11"
+author: "Ross Brancati"
+date: "11/22/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_11")
+```
+
+## 1: Problem 12.1
+### 12.1.1
+```{r}
+#create table
+t1 <- xtabs(~ spp + y, data=Blowdown)
+#display table
+t1
+```
+Note: 0 = tree survived, 1 = tree died
+
+### 12.1.2
+```{r}
+#plot y vs. log(d)
+plot(y ~ log(d), data=Blowdown, subset=spp=="black spruce")
+#add a smoother
+smooth <- loess(y ~ log(d), data=Blowdown, subset=spp=="black spruce")
+#create sequence of 100 data points for prediction purposes
+d0 <- seq(1,55, length=100)
+#plot fitted logistic regression
+lines(log(d0), predict(smooth, data.frame(d=d0)))
+```
+It does look like the graph supports fitting a logistic regression model. The smoothed, fitted line looks very similar to the curve we see for a logistic regression model, so it looks like this graph supports fitting a logistic model. 
+
+### 12.1.3
+```{r}
+#fit generalized linear model, but with Bernoulli regression model
+glm1 <- glm(y ~ log(d), family=binomial, data=Blowdown, subset=spp=="black spruce")
+summary(glm1)
+```
+As we can see, the estimated and standard errors of the coefficients are identical to those in table 12.1, but the deviance and df are much higher than table 12.1. 
+
+### 12.1.4
+```{r}
+#fit model with log(d)^2
+glm2 <- update(glm1, ~ . + I(log(d)^2))
+summary(glm2)$coef
+```
+
+```{r}
+#anova of glm1 vs. glm2
+anova(glm1, glm2, test="Chisq")
+```
+
+$z^2 = (-2.05)^2 = 4.2025$, which is the same as $G^2 = 4.0203$. So, we can conclude that there is evidence for larger trees having lower probability of being knocked down by the wind storm in the blowdown data.
+
+
+```{r}
+#effects plot
+plot(Effect("d", glm2), main="", grid=TRUE)
+```
+Yes, it looks like the quadratic model allows for declining probabilities. As d gets larger, the probability that it is knocked down is decreased.
+
+## 2: Problem 12.3
+### 12.3.1
+```{r}
+#create table
+t2 <- xtabs(~ outcome + myopathy, data=Downer)
+t2
+```
+```{r}
+#divide survived row by the totals of  both columns
+t2[2,]/colSums(t2)
+```
+
+### 12.3.2
+```{r}
+glm3 <- glm(outcome ~ myopathy, data=Downer, family=binomial)
+summary(glm3)
+```
+
+The intercept is the estimated log-odds of survival when there is no myopathy present, or when myopathy = 0. The coefficient of myopathy present (-2.2320) is the log-odds of survival when a myopathy is present. To get the actual odds of survival in either myopathy case, we should exponentiate the lod-odds:
+
+```{r}
+exp(glm3$coefficients)
+```
+
+When no myopathy is present, the odds of survival are 0.628 and the odds of survival when a myopathy is present are multiplied by 0.107. The 95% confidence intervals are:
+
+```{r}
+confint(glm3)
+```
+
+Just as we did with the coefficients, we can get the log-odds of the confidence intervals.
+
+```{r}
+exp(confint(glm3))
+```
+
+Lastly, we can use the predict() function to predict the probability of survival in both cases - when a myopathy is or isn't present.
+
+```{r}
+predict(glm3, data.frame(myopathy=factor(levels(Downer$myopathy))), type="response")
+```
+
+These odds match the survival fractions from part 1 of this problem.
+
+### 12.3.3
+```{r}
+glm4 <- glm(outcome ~ log(ck), data=Downer, family=binomial)
+summary(glm4)
+```
+
+Increasing ck will decrease the odds of survival. For example, it we increase the value of ck by 50% (0.5), the odds of survival will be decreased by $0.5 * -0.6117 = -0.30585$, or about 30%.
+
+### 12.3.4
+```{r}
+#fit model
+glm5 <- glm(outcome ~ myopathy + log(ck) + myopathy:log(ck), data=Downer, family=binomial)
+#Type II Analysis of Deviance Table
+Anova(glm5)
+```
+
+The Type II table shows us that myopathy and ck effect survival outcome, but the presence of myopathy clearly has a larger effect than ck, which we can tell from the higher coefficient. 
+
+```{r}
+plot(Effect(c("myopathy", "ck"), glm5), grid=TRUE, multiline=TRUE, ci.style="bars") 
+
+#grid=TRUE, multiline=TRUE, ci.style="bars", rescale.axis=FALSE, key.args=list(corner=c(0.98, 0.98)))
+```
+The effects plot shows that the effect of ck is much smaller on the presence of survival, and is only really important for smaller values of ck. Once you go beyond ck values of about 5,000, then ck level doesn't seem to impact survival. 
+
+## 3: Problem 12.4
+Starting with 12.7: $\theta(x) = \frac{1}{1+exp(-\beta'x)}$  
+Multiplying both sides by $(1+exp(-\beta'x))$: $\theta(x)(1+exp(-\beta'x)) = 1$  
+Multiplying out the left side: $\theta(x) + \theta(x)exp(-\beta'x) = 1$  
+Now, we just rearrange:  
+$\theta(x)exp(-\beta'x) = 1- \theta(x)$  
+$exp(-\beta'x) = \frac{1-\theta(x)}{\theta(x)}$  
+$-\beta'x = log(\frac{1-\theta(x)}{\theta(x)})$  
+The negative log of a number equals the inverse of the log, so $\beta'x = log(\frac{\theta(x)}{1-\theta(x)})$  
+
+## 4: Problem 12.9
+### 12.9.1
+```{r}
+#fit model
+glm6 <- glm(count11 ~ type + sex + citizen + type:sex + type:citizen + sex:citizen + type:sex:citizen, data=AMSsurvey, family=poisson)
+#Type II Analysis of Deviance Table
+Anova(glm6)
+```
+
+Starting at the bottomm, the type:sex:citizen and sex:citizen have large p-values and appear to be negligible. The remaining two-factor interactions, type:citizen and type:sex, have small p-values and are not neglibgible. Before we summarize any further, lets fit the Posson model including on the important two factor interactions. 
+
+```{r}
+#fit model
+glm7 <- glm(count11 ~ type + sex + citizen + type:sex + type:citizen, data=AMSsurvey, family=poisson)
+#Type II Analysis of Deviance Table
+summary(glm7)
+```
+
+The regression summary, provided above, is exhaustive and the coefficients are challenging to interpret because the parameters depend on the choice of regressors used to represent the factors. Interaction parameters are easer to interpret. For example, lets take the same coefficient mentioned in the book - typeIV:citizenUS which is -0.38169. This describes the difference between US citizens and non-citizens in biostatistics or statistics programs at any university. $exp(-0.38169) = 0.683$. This means that the expected number of US citizens in these programs is 0.68 times the expected number that are non-US citizens. Additionally, the coefficients for the main effects are not easily interpretable. For example, the difference between males and females depends on the value ot type, so we couldn't interpret the difference between males and females. 
+
+A more appropriate approach is to get estimated cell counts for each of the 24 cells in the model and create effects plots - one for each of the two-factor interactions:
+
+```{r}
+#change type variable to factor
+AMSsurvey$type <- factor(AMSsurvey$type, levels=levels(AMSsurvey$type)[order(xtabs(count11 ~ type, AMSsurvey))]) 
+#fit glm
+glm8 <- glm(count11 ~ type*sex + type*citizen, family=poisson, data=AMSsurvey)
+#plot the effect of citizen
+plot(Effect(c("type", "citizen"), glm8), multiline=TRUE, ci.style="bars", main="", xlab="Type", ylab="# PhDs", rescale.axis=FALSE, grid=TRUE)
+#plot the effect of sex
+plot(Effect(c("type", "sex"), glm8), multiline=TRUE, ci.style="bars", main="", xlab="Type", ylab="# PhDs", rescale.axis=FALSE, grid=TRUE)
+```
+In the effects plots, the levels are ordered according to the total number of PhD awards granted which makes the graphs easier to read. The vertical axis is the number of PhDs, and the horizontal axis is the type. It looks like the number of PhDs for citizens and non-citizens is very similar, except for type IV which is statistics and biostatistics programs. More non-US citizens are awarded PhDs compared to US citizens. The second plot shows the effects for the number of PhDs dependent on the sex of the person. In the 2011 data, it looks like males earned more PhDs compared to females at all levels of Type. Similar to the effects plots shown in the book, the largest difference looks to be at tyle 1 public universities, and we also saw a large discrepency in 2011 for type II (smaller) universities. 
+
+### 12.9.2
+```{r}
+#reshape data frame
+AMS1 <- reshape(AMSsurvey, varying=c("count", "count11"), v.names="y", direction="long", times=c("08-09", "11-12"), timevar="year")
+#factor by type and year
+AMS1$type <- factor(AMS1$type, levels=levels(AMS1$type)[order(xtabs(y ~ type, AMS1))])
+AMS1$year <- factor(AMS1$year)
+#fit model
+glm9 <- glm(y ~ (type + sex + citizen + year)^4, family=poisson, AMS1)
+#type II deviance table
+Anova(glm9)
+```
+
+The largest model that can be fit is 3rd order, and nothing over two-factor interactions appear to be important from the significance levels. Since the interactions including type are the only important ones, we do not need any of the other interactions from here on out.
+
+```{r}
+#fit model with interactions, only including type
+glm10 <- update(glm9, ~ type*(sex + citizen + year))
+Anova(glm10)
+```
+
+To better understand this, we can generate effects plots and summarize those results. 
+
+```{r}
+#effects plots
+plot(Effect(c("type", "citizen"), glm10), multiline=TRUE, ci.style="bars", main="", xlab="Type", ylab="# PhDs", rescale.axis=FALSE, grid=TRUE)
+plot(Effect(c("type", "sex"), glm10), multiline=TRUE, ci.style="bars", main="", xlab="Type", ylab="# PhDs", rescale.axis=FALSE, grid=TRUE)
+plot(Effect(c("type", "year"), glm10), multiline=TRUE, ci.style="bars", main="", xlab="Type", ylab="# PhDs", rescale.axis=FALSE, grid=TRUE)
+```
+
+Citizenship is only important for type IV (statistics and biostatistics). It looks like there were constantly more male PhDs compared to females. The year (08-09 vs 11-12) does not appear to make a difference, except for the type II (private) universities that awarded more PhDs in 11-12 compared to 08-09.  
+
+
