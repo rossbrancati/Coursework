@@ -1,0 +1,206 @@
+---
+title: "Homework 8"
+author: "Ross Brancati"
+date: "11/1/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_8")
+```
+
+## 1: Problem 8.4
+### 8.4.1
+```{r}
+#first, scatter plot of log(MaxSalary ~ Score)
+plot(log(MaxSalary)~Score, data=salarygov)
+```
+The scatter plot looks linear with fairly constant variance. To quantify, fit the model, show a summary, and run a non-constant variance test.
+
+```{r}
+#fit model
+m1 <- lm(log(MaxSalary)~Score, data=salarygov)
+summary(m1)
+
+#nonconstant variance test
+ncvTest(m1)
+```
+
+The Score is significantly correlated with log(MaxSalary), and the scatter plot confirms this linear relationship. Additionally, the non-constant variance test has a p-value of 0.91, so we do not reject the null hypothesis that the variance is constant, and therefore conclude that the mean function is approximately linear and the variance is approximately constant. 
+
+### 8.4.2
+To start, add the dummy variable for if a job is female dominated or male dominated.
+```{r}
+#add in factor for female dominated (1 = female dominated, 0 = not female dominated) 
+salarygov$femaledom <- salarygov$NW/salarygov$NE 
+#turn into dummy variable with a cutoff of 70% #the labels indicate "male dominated" (MD) or "female dominated" (FD) 
+salarygov$femaledomdummy <- cut(salarygov$femaledom,
+                                breaks = c(-0.01, 0.70, 1.01),
+                                labels = c('MD', 'FD'))
+```
+
+
+
+Next, create a scatter plot of log(MaxSalary)~Score and color the points based on if they are male or female dominated
+```{r}
+plot(log(MaxSalary)~Score, data=salarygov, col=femaledomdummy, pch=19)
+legend('topleft',
+       legend=c('Males', 'Females'),
+       pch=19,
+       col=c('black','pink'))
+```
+From the scatter plot, it appears that most of the jobs with higher salaries and higher scores are male dominated, while the most of the jobs with lower salaries and lower scores are female dominated. Lets fit a couple models to quantify these relationships.
+
+```{r}
+#fit model > m2 has no interaction
+m2 <- lm(log(MaxSalary) ~ Score + femaledomdummy, data=salarygov) 
+summary(m2)
+
+#fit model with an interaction 
+m3 <- lm(log(MaxSalary) ~ Score + femaledomdummy + Score:femaledomdummy, data=salarygov) 
+summary(m3)
+```
+
+The first model above (m2) shows that the regressor of female dominated jobs is significant, and therefore we can conclude that the two classes of jobs (male vs. female dominated) are different. Although log(MaxSalary) is significantly correlated with Score, there are differences between the positions that are male and female dominated. Adding in the interaction term shows no significant interation between Score and if the job is female dominated.
+
+## 2: Problem 9.3
+### 9.3.1
+```{r}
+#fit model
+m4 <- lm(Lab~Field, data=pipeline)
+#plot Lab vs. Field
+plot(Lab~Field, data=pipeline)
+#plot 1:1 ratio line and fitted OLS line
+abline(0,1, col='blue')
+abline(m4)
+legend('topleft',
+       legend=c('1:1 Ratio', 'Fitted Model'),
+       lty=1,
+       col=c('blue','black'))
+
+```
+The 1:1 ratio line is the line that represents perfect matches between the depth measurements in the field and in the lab. The black line represents the OLS line of the fitted model, which is above the blue line. This means that the lab measurements are slightly overestimating the measurements from the field. It is important to note that the overestimated occur with large values, which are deeper faults in this scenario. In other words, the lab measurements are overstimating the field measurements for deeper faults.
+
+### 9.3.2
+```{r}
+#show model summary
+summary(m4)
+```
+```{r}
+#plot residuals
+residualPlot(m4)
+```
+The fitted regression model has an $R^2 = 0.89$ and a slope of 1.22, supporting the findings of the plot from 9.3.1 which showed the fitted model to have a slope larger than 1. In that plot, we also saw that the variance was larger as the faults got deeper. The residuals plot supports this statement because the variance of the residuals increase as the fitted values increase (megaphone like plot), which suggests non-constant variance in this data. We can also run a test of non-constant variance for this model.
+
+```{r}
+#non-constant variance test
+ncvTest(m4)
+```
+This test supports the conclusions from above. With a small p-value, we reject the null hypothesis that the data has constant variance, and accept the alternative that there is non-constant variance in this model. 
+
+### 9.3.3
+```{r}
+#Fit Models:
+#1: existing OLS model
+#2: Bootstrap
+library(boot)
+m5 <- Boot(m4)
+#3: WLS
+m6 <- update(m4, weights=1/Field)
+#4: OLD with correction for non-constant variance
+m7 <- deltaMethod(m4, 'Field', vcov=hccm)
+
+#Show Results:
+print("OLS:")
+print(summary(m4)$coef[2,1:2])
+print('Bootstrap:')
+print(summary(m5)[2,c(2,4),drop=TRUE])
+print('WLS:')
+print(summary(m6)$coef[2, 1:2])
+print('Variance Corrected:')
+print(c(m7$Estimate, m7$SE))
+
+```
+
+The slope does not change in any of the models, except for the WLS model where is it slightly lower. The standard errors are  the same for the bootstrap method, and the errors are a lot lower in the WLS method, so ignoring the weights does not correctly estimate the precision of the model. In the model that corrects for non-constant variance, we actually see an increase in the standard error. Thus, it appears that the WLS model is the best in this situation. 
+
+## 3: Problem 9.11
+```{r}
+#transform data 
+fuel2001 <- transform(fuel2001,
+                      Dlic = 1000*Drivers/Pop,
+                      Fuel = 1000*FuelC/Pop,
+                      Income = Income/1000)
+#fit model
+m8 <- lm(Fuel~Tax+Dlic+Income+log(Miles), data=fuel2001)
+#subset rows of data to match question 
+rows <- c('AK','NY','HI','WY','DC')
+#create a table with Fuel, e_i, h_ii, D_i, and t_i
+summary_table <- data.frame(Fuel = fuel2001[rows,'Fuel'],
+                            residuals <- resid(m8)[rows],
+                            h = hatvalues(m8)[rows],
+                            cooks_dist = cooks.distance(m8)[rows],
+                            r = (resid(m8)[rows])/(64.891*sqrt(1-hatvalues(m8)[rows])))
+
+#outlier test statistics 
+summary_table$t <- summary_table$r*((nrow(fuel2001)-5-1)/(nrow(fuel2001)-5-summary_table$r^2))^(1/2)
+
+#p-values 
+summary_table$p_vals <- 5*2*pt(-abs(summary_table$t),46)
+
+#show the table with values
+summary_table
+
+
+
+
+```
+According to the outlier statistics, none of them would be considered outliers. The most influential state is Alaska. 
+
+
+## 4: Problem 9.16
+Scatterplot of Buchanan versus Bush with labels. 
+```{r}
+#scatterplot with labels 
+plot(Buchanan ~ Bush, data=florida)
+text(florida$Bush, florida$Buchanan, labels=row.names(florida), cex=.5, adj=1.3)
+```
+From the plot, we can see that Palm Beach looks like an outlier. Next, run an outlier test.
+```{r}
+outlierTest(lm(Buchanan ~ Bush, data=florida), cutoff = 67, n.max = 67)
+```
+The unadjusted and corrected p-values from the outlier test suggest that Palm Beach is an outlier in this dataset. Additionally, the scatter plot and the outlier test show another outlier county which is Dade. In this county, there are many more votes for Bush compared to Buchanan. Not knowing much about this election, it looks like the butterfly ballot may have impacted the decision due to Palm Beach being an outlier. However, one should always be skeptical in making conclusions because there could have been a legitamate reason for why Buchanan got so many votes in Palm Beach.
+
+Next, we repeat this with transformed variables. 
+```{r}
+#scatterplot with labels 
+plot(log(Buchanan) ~ log(Bush), data=florida)
+text(log(florida$Bush), log(florida$Buchanan), labels=row.names(florida), cex=.5, adj=1.3)
+```
+```{r}
+#outlier test
+outlierTest(lm(log(Buchanan) ~ log(Bush), data=florida), cutoff = 67, n.max = 67)
+```
+After transforming the data, the outlier test still suggests that Palm Beach is an outlier, however Dade does not come up as an outlier in the outlier test on transformed data. 
+
+## 5: Problem 9.19 (Extra Credit)
+The best way to approach this problem is to create a scatterplot matrix of all of the data to see potential outliers and the important of GS and RI.
+```{r}
+#scatter plot matrix
+scatterplotMatrix(drugcost)
+```
+Most of the observations have a percentage of generic prescriptions between 30-45% and a restrictiveness index between 0-20%. There are a few outliers - 2 observations with a very high RI and one with a very low GS. These points also look to have costs on the higher end. The relationships bewtween each pair of variables appears to be linear, but these relationships also appear to be influenced by the outlier points. 
+
+The relationship between Cost and GS shows that increasing GS lowers Cost. So, as more prescriptions are generic, the cost tends to go down with those prescriptions. If we remove the outlier points when observing RI and Cost, it looks like greater costs would lead to lower RI, and lower costs would lead to greater RI. 
+
+To conclude I think that more use of GS and RI would decrease costs, with the exception of a few outliers. However, if these outliers are removed from the dataset, this relationship should become more obvious. 
+
+
