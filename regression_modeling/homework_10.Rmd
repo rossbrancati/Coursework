@@ -1,0 +1,56 @@
+---
+title: "Homework 10"
+author: "Ross Brancati"
+date: "11/15/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_10")
+```
+
+## 1: Problem 11.1
+### 11.1.1
+This is a nonlinear mean function because the slope parameter $\beta_{ij}$ is multiplied by a parameter $\gamma$. 
+
+Since G has many levels, there is a mean function for each level of G. Additionally, each of the mean functions has its own slope since the slope parameter $\beta_{ij}$ is dependent on the level of G, and the lines are concurrent when x = $\gamma$.
+
+### 11.1.2
+First, get the starting values
+```{r}
+#fit model
+m1 <- lm(TS ~ log(BodyWt):factor(D), data=sleep1) 
+#summarize
+summary(m1)$coef
+```
+
+Next, fit the nonlinear model with coefficients found above and gamma (g) = 0
+```{r}
+#fit model
+m2 <- nls(TS ~ 
+            b0 + 
+            b11*((D==1)*(log(BodyWt) - g)) + 
+            b12*((D==2)*(log(BodyWt) - g)) + 
+            b13*((D==3)*(log(BodyWt) - g)) + 
+            b14*((D==4)*(log(BodyWt) - g)) + 
+            b15*((D==5)*(log(BodyWt) - g)),
+          data=sleep1,
+          start=list(b0=11, 
+                     b11=-.3, 
+                     b12=-.6, 
+                     b13=-.9, 
+                     b14=-.6, 
+                     b15=-1.6, 
+                     g=0))
+#summarize
+summary(m2)
+```
+
