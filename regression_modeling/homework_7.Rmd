@@ -1,0 +1,140 @@
+---
+title: "Homework 7"
+author: "Ross Brancati"
+date: "10/25/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_7")
+```
+
+## 1: Problem 7.3
+### 7.3.1
+No, the oversampled populations should actually be given a lower weight. Oversampling would lead to a greater inclusion probability, and therefore a lower weight because the sampling weight is calculated as the inverse of the inclusion probability. 
+
+### 7.3.2
+They should be given larger weight. Each observation of the non-responders represents more of the population, assuming that the non-responders respond similarly to responders. Therefore, the weight would be larger for the non-responders. 
+
+## 2: Problem 7.6
+### 7.6.1
+```{r}
+#scatter plot of Distance versus Speed
+plot(Distance ~ Speed, data = stopping)
+
+```
+It appears that a linear model may not fit this data well, however it does look like the curved nature of the data supports fitting a quadratic regression model. Distance appears to exponentially grow with speed.  
+
+### 7.6.2
+```{r}
+#a) varaince depends on mean
+m1 <- lm(Distance ~ Speed + I(Speed^2), data = stopping)
+summary (m1)
+ncvTest(m1)
+#b) variance depends on Speed
+m2 <- lm(Distance ~ Speed + I(Speed^2), data = stopping, weights = 1/Speed)
+ncvTest(m2)
+#c) variance depends on Speed and Speed^2
+m3 <- lm(Distance ~ Speed + I(Speed^2), data = stopping, weights = 1/Speed^2)
+ncvTest(m3)
+```
+No, adding Speed^2 does not help. The p-value when adjusting for Speed^2 (0.693) is not significant, whereas the p-value in the other tests are significant. 
+
+### 7.6.3
+```{r}
+m4 <- lm(Distance ~ Speed + I(Speed^2), data = stopping, weights = 1/Speed)
+summary (m4)
+```
+Using a weight of 1/Speed has a bigger t-value for both Speed and the Intercept. Also, the p-value is lower for both Speed and the Intercept, which means we are shifting towards a significant relationship. So, adding the weight in is beneficial in this case. 
+
+### 7.6.4
+```{r}
+#fit sandwich estimator for unweighted case
+m5 <- hccm(m1, type="hc3")
+sqrt(diag(m5))
+#we can also use the coeftest function to get the output from hccm
+library(lmtest)
+coeftest(m1, vcov=hccm)
+```
+The square root of the diagonals fo the matrix shown in the first printed section above, which are the standard errors, are larger estimates compared with the previous sub problem. The p-values for the Intercept, Speed, and Speed^2 are also larger than the previous subproblem. This indicates that the sandwich estimator is not as good at fitting these data compared to the weighted case in 7.6.3.
+
+### 7.6.5
+```{r}
+#load bootstrap library
+library(boot)
+#create a function to get the weights
+ws <- function(data, indices) {
+  fit_model <- lm(Distance~Speed+I(Speed^2), data = data[indices,])
+  return(coef(fit_model))
+}
+#get stats from model and display
+bootstrap_stats <- boot(data = stopping, statistic = ws, R=1000)
+bootstrap_stats
+```
+The standard errors from the bootstrap method are smaller than the sandwich estimator model in 7.6.4, but still larger than the weighted model from 7.6.3. It should be noted that the boot function selects a random sample, so there is a chance that these results may not hold true depending on the selected sample if you do not always set the random seed. I did run it 5 times, and each time these iterations had standard errors that held true to what I stated above. 
+
+## 3: 7.7
+### 7.7.1
+```{r}
+#scatter plot of progeny ~ parent
+plot(Progeny ~ Parent, data=galtonpeas)
+```
+
+### 7.7.2
+```{r}
+#compute the weighted regression of Progeny ~ Parent
+m6 <- lm(Progeny ~ Parent, data=galtonpeas, weights=1/SD^2)
+summary(m6)
+```
+```{r}
+#scatter plot with fitted mean function
+plot(Progeny ~ Parent, data=galtonpeas)
+abline(m6)
+```
+
+### 7.7.3
+This potential sampling bias of seed size should decrease the slope, which I suspect would increase the intercept of the line. This could increase variances, which could also increase the estimates of the error, and would therefore make differences harder to detect. 
+
+## 4: Problem 7.9
+### 7.9.1
+Part 1: 95% confidence interval for mean of log(fertility)
+```{r}
+#95% confidence interval for mean of log(fertility)
+ci_A <- t.test(log(UN11$fertility))$conf.int
+ci_A
+```
+Part 2: 95% confidence interval for median of fertility 
+```{r}
+#95% confidence interval for median of fertility by exponentiating endpoints
+ci_B = exp(ci_A)
+ci_B
+```
+
+The 95% confidence interval for the mean of log(fertility) is [0.850, 0.974] and the 95% confidence interval for the median of fertility is [2.339, 2.650].
+
+### 7.9.2
+```{r}
+#load the boot strap library
+library(boot)
+#create a function to get the median for each bootstrap sample
+get_median <- function(data, indices) {
+  median(data[indices])
+}
+#bootstrap (999 samples)
+boot_sample <- boot(data = UN11$fertility, statistic = get_median, R = 999)
+#get 95% confidence interval of bootstrap sample
+boot_ci <- boot.ci(boot_sample, type=c("norm", "perc", "bca"))
+#display results
+boot_ci
+```
+
+The bootstrap confidence intervals from 7.9.2 appear to be narrower than the method using exponents from 7.9.1. This means that there may be bias from exponentiating the CI from log(fertility), and therefore the bootstrap method seems appropriate in this scenario. 
+
