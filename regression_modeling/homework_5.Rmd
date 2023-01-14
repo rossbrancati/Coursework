@@ -1,0 +1,168 @@
+---
+title: "Homework 5"
+author: "Ross Brancati"
+date: "10/11/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_5")
+```
+
+## 1: Problem 5.1
+### 5.1.1
+Since the dummy variable $U_j$ is 1 for the $j^{th}$ level of the factor and 0 otherwise, $U_2 = U_3 = ... = U_j = 0$ at the lowest level of X. Substituting all $U_j$ into equation 5.17 yields $E(Y|U_2,...,U_d) = \beta_0 + \beta_2(0) + ... + \beta_d(0) = \beta_0$. Therefore the mean of the first level of X is $\mu_1 = \beta_0$. When X is at any level $j$, $U_j = 1$ and any other $U_k = 0$. Substituting into equation 5.17 yields $E(Y|U_j = 1, U_k = 0, k \neq j) = \beta_0 + \beta_j(1) + ... + \beta_k(0) = \beta_0 + \beta_j$. Therefore, the mean at any level $j=2,...,d$ is $\mu_j = \beta_0 + \beta_j$.
+
+
+## 2: Problem 5.5
+### 5.5.1
+In Wilkinson-Rogers notation, interactions are written with a colon (:), so this mean function can be written as Y ~ A + B + A:B.
+
+### 5.5.2
+Start with writing out all $\mu_{ij}$:\
+$\mu_{11} = E(Y|A=a_1, B=b_1) = \beta_0$\
+$\mu_{12} = E(Y|A=a_1, B=b_2) = \beta_0 + \beta_2B_2$\
+$\mu_{13} = E(Y|A=a_1, B=b_3) = \beta_0 + \beta_3B_3$\
+$\mu_{21} = E(Y|A=a_2, B=b_1) = \beta_0 + \beta_1A_2$\
+$\mu_{22} = E(Y|A=a_2, B=b_2) = \beta_0 + \beta_1A_2 + \beta_2B_2 + \beta_4A_2B_2$\
+$\mu_{23} = E(Y|A=a_2, B=b_3) = \beta_0 + \beta_1A_2 + \beta_3B_3 + \beta_5A_2B_3$\
+
+From there, we can solve for all $\beta s$:\
+$\beta_0 = \mu_{11}$\
+$\beta_1 = \mu_{21} - \mu_{11}$\
+$\beta_2 = \mu_{12} - \mu_{11}$\
+$\beta_3 = \mu_{13} - \mu_{11}$\
+$\beta_4 = \mu_{22} + \mu_{11} - \mu_{21} - \mu_{12}$\
+$\beta_5 = \mu_{23} + \mu_{11} - \mu_{13} - \mu_{21}$\
+
+### 5.5.3
+This is similar to problem 5.5.2, but we remove the interaction effects yielding the following equations:\
+$\mu_{11} = E(Y|A=a_1, B=b_1) = \beta_0$\
+$\mu_{12} = E(Y|A=a_1, B=b_2) = \beta_0 + \beta_2B_2$\
+$\mu_{13} = E(Y|A=a_1, B=b_3) = \beta_0 + \beta_3B_3$\
+$\mu_{21} = E(Y|A=a_2, B=b_1) = \beta_0 + \beta_1A_2$\
+$\mu_{22} = E(Y|A=a_2, B=b_2) = \beta_0 + \beta_1A_2 + \beta_2B_2$\
+$\mu_{23} = E(Y|A=a_2, B=b_3) = \beta_0 + \beta_1A_2 + \beta_3B_3$\
+
+Now, we only have four $\beta s$ to solve for (and don't really need the last two equations from above):\
+$\beta_0 = \mu_{11}$\
+$\beta_1 = \mu_{21} - \mu_{11}$\
+$\beta_2 = \mu_{12} - \mu_{11}$\
+$\beta_3 = \mu_{13} - \mu_{11}$\
+
+## 3: 5.8
+### 5.8.1
+```{r}
+#Fit the model
+m1 <- lm(Y ~ X1 + X2 + I(X1^2) + I(X2^2) + X1:X2, data=cakes)
+
+#display model summaries
+summary(m1)
+```
+The above summary of m2 shows that the significance level for quadratic terms and interaction are all less than 0.005.
+
+### 5.8.2
+```{r}
+#add in block to mean function
+m2 <- lm(Y ~ X1 + X2 + I(X1^2) + I(X2^2) + X1:X2 + block, data=cakes)
+summary(m2)
+```
+All terms in this model are still significant, except for the block term. This means that there is no significant different between the different days that the cake experiment was performed on.
+
+
+## 4: Problem 5.9
+### 5.9.1
+```{r}
+#create scatter plot
+plot(MaxSalary~Score, data=salarygov)
+abline(lm(salarygov$MaxSalary~salarygov$Score), col='blue')
+```
+The mean function of this model appears curved and the variability of Max Salary increases as Score increases, so simple regression would not be a good description of this figure.
+
+### 5.9.2
+```{r}
+#import splines library
+library(splines)
+#fit models with different d values
+m3 <- lm(MaxSalary ~ bs(Score, df=4), data=salarygov)
+m4 <- lm(MaxSalary ~ bs(Score, df=5), data=salarygov)
+m5 <- lm(MaxSalary ~ bs(Score, df=10), data=salarygov)
+#plot of MaxSalary~Score
+plot(MaxSalary~Score, data=salarygov)
+#create a vector for max and min values of score to plot fitted curves
+scoresrange <- min(salarygov$Score):max(salarygov$Score)
+#add lines to plot
+lines(scoresrange, predict(m3, data.frame(Score=scoresrange)), col='red')
+lines(scoresrange, predict(m4, data.frame(Score=scoresrange)), col='green')
+lines(scoresrange, predict(m5, data.frame(Score=scoresrange)), col='blue')
+#add legend
+legend('topleft', legend=c(4, 5, 10), lty=1, col=c('red', 'green', 'blue'), title='df')
+```
+It looks like all three splines fit the data fairly well, but as more degrees of freedom (df) are added to the model, it may be over fitting. For example, at Score values at the upper range of Score (around 900-1000), the spline with 10 df does not look like it is fitting very well. From a visual inspection, I would say that the model with 4 df fits this data the best. 
+
+
+### 5.9.3 (Extra Credit)
+```{r}
+#add in factor for female dominated (1 = female dominated, 0 = not female dominated)
+salarygov$femaledom <- salarygov$NW/salarygov$NE
+#turn into dummy variable with a cutoff of 70%
+#the labels indicate "male dominated" (MD) or "female dominated" (FD)
+salarygov$femaledomdummy <- cut(salarygov$femaledom,
+                                breaks = c(-0.01, 0.70, 1.01), 
+                                labels = c('MD', 'FD'))
+#fit model
+m6 <- lm(MaxSalary ~ bs(Score) + femaledomdummy + bs(Score):femaledomdummy, data=salarygov)
+summary(m6)
+```
+```{r}
+#effects plot
+#plot of MaxSalary~Score
+plot(MaxSalary~Score, data=salarygov)
+#create a vector for max and min values of score to plot fitted curves
+scoresrange <- min(salarygov$Score):max(salarygov$Score)
+#add lines to plot
+lines(scoresrange, predict(m6, data.frame(Score=scoresrange, femaledomdummy='MD')), col='blue')
+lines(scoresrange, predict(m6, data.frame(Score=scoresrange, femaledomdummy='FD')), col='red')
+#add legend
+legend('topleft', legend=c('Male', 'Female'), lty=1, col=c('blue', 'red'), title='Dominant Sex')
+```
+The effects plot suggests that the female-dominated job classes fit is below the male dominated job classes across all scores. From the summary of m6 above, it looks like females earn $268 less than male counterparts across job classes and scores. 
+
+
+## 5: Problem 5.11
+### 5.11.1
+```{r}
+#fit model
+m7 <- lm(log(acrePrice) ~ year + region + year:region + financing, data=MinnLand)
+#display confidence intervals
+confint(m7)
+```
+The 95% confidence interval for the effect of financing is "financingseller_financed" confidence interval which is [-0.11774, -0.07304].
+
+### 5.11.2
+Statement 1 implies causation, which cannot be supported from observational experimental data. Statement 2 agrees with what the data, however there could be other reasons why seller financing is more likely on lower-priced property transactions. 
+
+
+## 6: Problem 5.19
+### 5.19.1
+Each predictor in the Wool dataset (i.e. len, amp, load), let $U_{ij}$ be the dummy variable for level $j = 2,3$ where each $i \space \epsilon \space (len, amp, load)$. The level $j$ only has two levels because we drop the lowest level of each and only parameterize for the second and third levels. The two mean functions are:\
+
+$E(log(cycles)|First-order) = \beta_0 + \sum_{i=1}^3 \sum_{j=2}^3 \beta_{ij} U_{ij}$\
+$E(log(cycles)|Second-order) = \beta_0 + \sum_{i=1}^3 \sum_{j=2}^3 \beta_{ij} U_{ij} + \sum_{i=1}^2 \sum_{k=i+1}^3 \sum_{j=2}^3 \beta_{ikj} U_{ij} U_{kj}$\
+
+Or, we can write the mean functions in Wilkinson-Rogers notation:\
+
+log(cycles) ~ len + amp + load\
+log(cycles) ~ (len + amp + load)$^2$
+
+### 5.19.2
+When len and amp are fixed at their middle levels, $j=2$, but load is increased from its middle to high level, the first-order mean function's expected change is $\beta_{33} - \beta_{32}$ and the second order mean function's expected change is $\beta_{33} - \beta_{32} + \beta_{133} - \beta_{132} + \beta_{233} - \beta_{232}$.
+
