@@ -1,0 +1,107 @@
+---
+title: "Homework 1"
+author: "Ross Brancati"
+date: "9/13/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_1")
+```
+
+## 1: Learn about R
+
+I looked at the tutorials and I am comfortable with all of them, so I did a tutorial on tidyverse. From this tutorial, I learned how to import and summarize data. I also learned how to arrange data by a specific variable, create new features (feature engineering), and change values within a variable to strings. Next, the tutorial reviewed some basic plotting functions with ggplot such as creating bar plots and scatter plots. Lastly, I learned how to filter data and generate summary metrics based on the filters applied to the data. 
+
+
+## 2: Problem 1.1
+### 1.1.1
+Predictor variable: gross national product per person in U.S. dollars (ppgdp)
+Response variable: birth rate per 1000 females (fertility)
+
+
+### 1.1.2
+Scatterplot of fertility on the vertical axis and ppgdp on the horizontal axis
+```{r}
+plot(fertility ~ ppgdp, 
+     data=UN11, 
+     xlab="Gross National Product Per Person in U.S Dollars", 
+     ylab="Birth Rate Per 1000 Females")
+```
+
+A straight-line mean function does not appear to summarize this graph well because the mean function does not look linear and the variance is not constant across the predictor variable. This means a linear model would not fit this data well, and instead would be better suited for some sort of decreasing exponential function. 
+
+
+### 1.1.3
+
+Scatterplot of log(fertility) on the vertical axis and log(ppgdp) on the horizontal axis
+```{r}
+plot(log(fertility) ~ log(ppgdp), 
+     data=UN11, 
+     xlab="Gross National Product Per Person in U.S Dollars", 
+     ylab="Birth Rate Per 1000 Females")
+```
+
+Yes, a simple linear regression model seems reasonable for summarizing this graph. Qualitatively, it appears that the mean function is linear and that there is a negative linear relationship between these two variables when taking the log. As gross national product increases, the birth rate decreases. 
+
+
+## 3: Problem 1.5
+Scatterplot matrix for southern California water data
+```{r}
+#the scatterplot matrix can be generated using pairs():
+#pairs(water)
+
+#however, the car package has another function to create elaborate scatterplot matrices:
+scatterplotMatrix(water)
+```
+
+This scatterplot matrix is useful for predicting runoff (response variable) from the annual precipitation at various mountains (predictor variable). To interpret this scatterplot, observe the far-right column of plots where the stream runoff (BSAAM) is on the vertical axis. Qualitatively speaking, out of the six sites in the Sierra Nevada mountains, it looks like the precipitation measurements from OPBPC, OPRC, and OPSLAKE best predict the annual runoff as these sites have the strongest linear relationship with BSAAM. Additionally, these three predictor variables appear to be correlated with each other. Lastly, the year does not seem to matter.
+
+In terms of application, an engineer, planner, or policy member could use the annual precipitation from these three sites to make predictions about runoff volume, and therefore the water availability in southern California. 
+
+
+## 4: Problem 1.6
+
+### Quality:
+Quality has a strong positive relationship with clarity and helpfulness, a moderate positive relationship with easiness, and a weak positive relationship with raterInterest. 
+
+### Clarity:
+Clarity has a strong positive relationship with quality and helpfulness, a moderate positive relationship with easiness, and a weak positive relationship with raterInterest. 
+
+### Helpfulness:
+Helpfulness has a strong positive relationship with quality and clarity, a moderate positive relationship with easiness, and a weak positive relationship with raterInterest. 
+
+### Easiness:
+Easiness has a moderate positive relationship with quality, clarity, and helpfulness, and a very weak positive relationship with raterInterest. 
+
+### raterInterest:
+raterInterest has a weak positive relationship with quality, clarity, helpfulness, and easiness.
+
+### Summary:
+These data show that the students who rated professors on this platform tend to agree on the relationship between a professor's quality, clarity, and helpfulness. For example, when a user gives a high rating of quality, they tend to give high ratings for clarity and helpfulness. However, the two other ratings (easiness and raterInterest) do not have strong relationships with other variables. Although there is higher variance when looking at the relationship between easiness and the other four ratings, it does look like there is a moderate relationship between the quality, clarity, and helpfulness ratings, but not raterInterest. In fact, raterInterest is weakly correlated with any of the four variables, and therefore would not be a good predictor variable for the other ratings. However, the nature of this platform should be considered as there is most likely some variation in perceived ratings between students. 
+
+
+
+## 5: Mathematical Expressions
+
+$$\hat{\beta_0} = \bar{y}-\hat{\beta_1}\bar{x}$$
+
+$$\hat{\beta_1} = \frac{SXY}{SXX} = r_{xy}\frac{SD_y}{SD_x} = r_{xy}(\frac{SYY}{SXX})^{1/2}$$
+
+$$SXX = \sum_{i=1}^n(x_i-\bar{x})^2 = \sum_{i=1}^n(x_i-\bar{x})x_i$$
+
+$$SXY = \sum_{i=1}^n(x_i-\bar{x})(y_i-\bar{y}) = \sum_{i=1}^n(x_i-\bar{x})y_i$$
+
+$$SYY = \sum_{i=1}^n(y_i-\bar{y})^2 = \sum_{i=1}^n(y_i-\bar{y})y_i$$
+$$\hat\sigma^2 = \frac{RSS}{n-2} = \frac{SYY - \frac{SXY^2}{SXX}}{n-2} = SYY - \hat{\beta_1}^2SXX$$
+
+
+
