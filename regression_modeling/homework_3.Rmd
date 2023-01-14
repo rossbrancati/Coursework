@@ -1,0 +1,170 @@
+---
+title: "Homework 3"
+author: "Ross Brancati"
+date: "9/27/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_3")
+```
+
+## 1: Problem 3.1
+```{r}
+#load ggplot library 
+library(ggplot2)
+#create ggplot with dots and OLD regression line
+ggplot(UN11, aes(x=log(ppgdp), y=fertility)) +
+        geom_point() +
+        geom_smooth(method='lm', forumla=ferility~log(ppgdp)) +
+        geom_text(aes(label=rownames(UN11)), size=2, nudge_x=0.2) +
+        xlab("Gross National Product Per Person in U.S Dollars") +
+        ylab("Birth Rate Per 1000 Females")
+```
+The scatter plot shown above shows that the localities corresponding to poorly fitting points include a lot of countries in Africa such as Niger, Zambia, Mali, Angola and Equatorial Guinea to name a few. These countries tend to have higher birth rates with less gross national product, which means these countries are generally having more children with a lower economic output per person.
+
+## 2: Problem 3.2
+### 3.2.1
+```{r}
+scatterplotMatrix(~fertility + log(ppgdp) + pctUrban, data=UN11)
+```
+The scatter plot matrix shows that there is a strong negative relationship between fertility and log(ppgdp), a moderate negative relationship between fertility and pctUrban, and a strong positive relationship between log(ppgdp) and pctUrban.
+
+### 3.2.2
+```{r}
+#regression model for fertility~log(ppgdp)
+print("fertility~log(ppgdp)")
+m3_2_3a <- lm(fertility ~ log(ppgdp), data=UN11)
+summary(m3_2_3a)
+
+#regression model for fertility~pctUrban
+print('fertility~pctUrban')
+m3_2_3b <- lm(fertility ~ pctUrban, data=UN11)
+summary(m3_2_3b)
+```
+The summaries of the regression models for both fertility~log(ppgdp) and fertility~pctUrban have p-values for the slope that are 2e-16, which are much lower than a significance level of 0.001, and therefore are significantly different than 0 at any conventional level of significance.
+
+### 3.2.3
+```{r}
+#regression model and added variable plots with log(ppgdp) first
+m3_2_3a <- lm(fertility ~ log(ppgdp) + pctUrban, data=UN11)
+avPlots(m3_2_3a)
+
+#regression model and added variable plots with pctUrban first
+m3_2_3b <- lm(fertility ~ pctUrban + log(ppgdp), data=UN11)
+avPlots(m3_2_3b)
+```
+After visual inspection of the added variable plots, it does appear that log(ppgdp) is useful after accounting for pctUrban. It does not appear that pctUrban is useful after accounting for log(ppgdp).
+
+```{r}
+#regression of fertility ~ log(ppgdp)
+print('ferility~log(ppgdp)')
+m3_2_2c <- lm(fertility ~ log(ppgdp), data=UN11)
+summary(m3_2_2c)
+
+#regression of ferility ~ pctUrban
+print('ferility~pctUrban')
+m3_2_2d <- lm(fertility ~ pctUrban, data=UN11)
+summary(m3_2_2d)
+```
+The $R^2$ of fertility ~ log(ppgdp) shows that log(ppgdp) explains about 52% of the variability in fertility. The $R^2$ of fertility ~ pctUrban shows that pctUrban explains about 29% of the variability in fertility. Now that we have this information, compute the regression of the response on both regressors.
+
+```{r}
+#computer regression of log(ppgdp) on pctUrban and the regression of residuals
+m3_2_2e <- lm(log(ppgdp) ~ pctUrban, data=UN11)
+m3_2_2f <- lm(residuals(m3_2_2d) ~ residuals(m3_2_2e))
+summary(m3_2_2f)
+```
+The $R^2$ value is 31.93%, which shows that log(ppgdp) explains about 32% of the variability in fertility after adjusting for pctUrban.
+
+```{r}
+#repeat for accounting for log(ppgdp) first
+m3_2_2g <- lm(pctUrban ~ log(ppgdp), data=UN11)
+m3_2_2h <- lm(residuals(m3_2_2c) ~ residuals(m3_2_2g))
+summary(m3_2_2h)
+```
+The $R^2$ value is close to 0, which shows that pctUrban does not explain any of the variability in fertility after adjusting for log(ppgdp). From these models, the results of the added variable plots are supported. 
+
+```{r}
+#regression model accounting for both log(ppgdp) and pctUrban
+m3_2_2i <- lm(fertility ~ log(ppgdp) + pctUrban, data=UN11)
+summary(m3_2_2i)
+```
+
+Including both regressors in the model (model m3_2_2i) shows that the  slope for log(ppgdp) is very close to the slope when only accounting for log(ppgdp) (model m3_2_2c). Also, the $R^2$ is the same in model m3_2_2i as model m3_2_2c, which shows that adding in pctUrban is not useful for improving out model. To summarize, log(ppgdp) is useful after adjusting for pctUrban, but pctUrban isn't useful after adjusting for log(ppgdp). 
+
+### 3.2.4
+```{r}
+#show model coefficients
+coefficients(m3_2_2i)
+coefficients(m3_2_2f)
+```
+The coefficient of log(ppgdp) from model m3_2_2i and the residuals of log(ppgdp) after accounting for pctUrban (model m3_3_3f) are the same (-0.61514).
+
+### 3.2.5
+```{r}
+#isTrue function checks if the arguments of the function are equal so that we do not have to manually check
+isTRUE(all.equal(residuals(m3_2_2i), residuals(m3_2_2f)))
+isTRUE(all.equal(residuals(m3_2_2i), residuals(m3_2_2h)))
+```
+Since the isTRUE function printed "TRUE" for both tests, we can say that the residuals of both added variable plots are the same for the mean function with both predictors.
+
+### 3.2.6
+```{r}
+summary(m3_2_2f)
+summary(m3_2_2i)
+```
+Although one may expect that the models produce the same t-statistic, they are not quite the same. The coefficient for log(ppgdp) is -9.588 in the model with both regressors, and -9.613 for the added variable plot model. This is because the degrees of freedom are different between the two models. In the model with one regressor, there are 197 degrees of freedom. However, in the model with both regressors, there are 196 degrees of freedom.
+
+
+## 3: Problem 3.4
+### 3.4.1
+The added variable plot for $X_2$ after $X_1$ would have a perfectly correlated group of points on a straight line. Since $X_1$ and $X_2$ are perfectly correlated, the residual values of the regression of $X_2$ on $X_1$ will all be zeros. The added variable plot is the plot of the residuals obtained from the $Y$ on $X_1$ and then $X_2$ on $X_1$, which will have a straight line of points on the y-axis because the second regression has residuals all equal to zero. 
+
+### 3.4.2
+This is almost the opposite of 3.4.1. The first regression of $Y$ on $X_1$ will have all residuals equal to zero because the two variables are perfectly correlated. Now, we then regress $X_2$ on $X_1$, and this time they are not perfectly correlated, so there will be residuals. The points will all be on the x-axis because the first regression has residuals all equal to zero and the second regression had non-zero residuals.
+
+### 3.4.3
+If $X_1$ and $X_2$ are perfectly linearly correlated, the added variable plot of $X_2$ after $X_1$ will have the same shape of the marginal plot of $Y$ versus $X_2$. This is because adding in $X_1$ does not affect the shape of the plot because it is perfectly correlated with $X_2$. 
+
+### 3.4.4
+False. The vertical variation of the points in an added variable plot also depend on the $\beta$ values. So, you cannot say that the vertical variation of $X_2$ after $X_1$ is always less than or equal to the vertical variation of $Y$ versus $X_2$ without knowing what these $\beta$ parameters are. 
+
+
+## 4: P-value Question
+Since this is a one sided test, the p-value is calculated at $0.08/2 = 0.04$.
+
+## 5: Applied Multiple Regression Question
+One applied situation when you may want to use multiple regression is for determining which varaibles may be important for predicting the total number of points scored in a NFL football game. The regressors could included total passing yards, total running yards, total number of catches, average yards gained per attempt, number of interceptions, etc. From this regression, I would hope to learn which of these regressors are most influential on predicting the total number of points. This could help a coach to generate a game plan for decisions regarding how many passes they should attempt, how many running plays they should execute, the type of plays (long vs. short passes), and other decisions that may help the team win.
+
+## 8: Problem 3.6
+### 3.6.1
+```{r}
+#create subset of water matrix
+water_subset <- water[c('BSAAM', 'OPBPC', 'OPRC', 'OPSLAKE')]
+#scatter plot matrix
+scatterplotMatrix(water_subset)
+```
+The correlation matrix for the response and three regressors should have positive and large values for each of the variables because the scatter plot matrix shows strong, positive correlations between the response and each of the regressors.
+```{r}
+cor(water_subset)
+```
+The statement above is confirmed by the correlation matrix.
+
+### 3.6.2
+```{r}
+m3_6_2 <- lm(BSAAM ~ OPBPC + OPRC + OPSLAKE, data=water)
+summary(m3_6_2)
+```
+The t-value column of the summary table is the test statistic for test whether or not the coefficient is significantly different from 0. If the test statistic isn't significantly different from 0, then the coefficient isn't adding anything to the model and could be dropped from the model without affecting the significance of the overall model. To see if the test statistic is significantly different, look at the column labeled Pr(>|t|). If this value is significant, it will be below at least 0.1 (indicated by a '.'). In the above model, three and two stars next to this value are p-values less than 0.001 and 0.01, respectively, indicating that the coefficient is significantly different from 0, which means these regressors add to the model and should be kept.
+
+
+
