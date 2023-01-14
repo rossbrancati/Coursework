@@ -1,0 +1,118 @@
+---
+title: "Homework 4"
+author: "Ross Brancati"
+date: "10/4/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#before we begin, load required libraries
+library(alr4) #Data to accompany textbook
+library(tinytex) #Light version of latex
+#and set working directory
+setwd("/Users/rossbrancati/Documents/Classes/fall_2022/stat_625/homeworks/homework_4")
+```
+
+## 1: Problem 4.2
+### Fit Four Models
+```{r}
+#add new variables to data frame
+Transact$a <- (Transact$t1 + Transact$t2)/2
+Transact$d <- Transact$t1 - Transact$t2
+
+#fit four models
+m1 <- lm(Transact$time~Transact$t1+Transact$t2)
+m2 <- lm(Transact$time~Transact$a+Transact$d)
+m3 <- lm(Transact$time~Transact$t2+Transact$d)
+m4 <- lm(Transact$time~Transact$t1+Transact$t2+Transact$a+Transact$d)
+
+#Display summaries of four models
+print('Model 1:')
+summary(m1)
+print('Model 2:')
+summary(m2)
+print('Model 3:')
+summary(m3)
+print('Model 4:')
+summary(m4)
+```
+
+### 4.2.1
+In model 4, variables a and d are defined from t1 and t2, and therefore are linear combinations of these two variables. The effects of a and d are already accounted for with t1 and t2. So, including them in the model overparameterizes this model and does not contribute anything new to the model. Luckily, R recognizes this and replaces the coefficient estimates with NA.
+
+### 4.2.2
+For each model, the estimates of intercept (and its standard error), the t-value, the p-value for t, $R^2$, residual standard error, F-statistic, and p-value are all the same. The aspects that change are the coefficients of the variables in each model. For example, the coefficients of t1 and t2 in models 1 and 4 are the same because a and d in model 4 are aliased. However, t2 is different in model 3 compared to models 1 and 4. 
+
+### 4.2.3
+t2 is different in models 1 and 3 because the first model included t1 and the third model includes d, where d is the difference between t1 and t2. The first model included data from t1 directly, where the third model included data from t1 with respect to the t2 values. Since the difference between t1 and t2 is not the same for every branch of this bank, I'd expect the coefficients of t2 to be different for a model including t1 and a model including d.  
+
+## 2: Problem 4.6
+```{r}
+#fit and display model
+m5 <- lm(log(fertility)~pctUrban, data=UN11)
+summary(m5)
+```
+
+The estimated coefficient of pctUrban tells us that if the proportion of people living in an urban area increased by 1, there would be, on average, a decrease in fertility of $e^{0.01} = 1.01$ units. It is also important to look at the intercept, which would tell us that if a population has 0% of its population in urban areas, the fertility would be $e^{1.50} = 4.48$ units. 
+
+
+## 3: Problem 4.7
+First, fit the model to get the coefficients.
+```{r}
+#fit and display model
+m6 <- lm(log(fertility)~log(ppgdp)+lifeExpF, data=UN11)
+summary(m6)
+```
+Next, calculate the log scaled value associated with a the mean and a 25% increase in ppgdp. The mean and 25% increase values are 9.4736 and 9.6968, respectively. 
+```{r}
+#get mean ppgdp
+print('Mean ppgdp value:')
+mean(UN11$ppgdp)
+#calculate log scale value of mean ppgdp:
+print("Log scale of mean ppgdp:")
+log(mean(UN11$ppgdp))
+#25% increase in ppgdp
+print('25% increase in ppgdp:')
+mean(UN11$ppgdp) + 0.25*mean(UN11$ppgdp)
+#calculate log scale value of 25% increase in ppgdp
+print("Log scale of 25% increase in ppgdp:")
+log(mean(UN11$ppgdp) + 0.25*mean(UN11$ppgdp))
+```
+
+Next, calculate the mean value of lifeExpF, which is 72.293 years.
+```{r}
+#get mean of lifeExpF
+print("Mean life expetency:")
+mean(UN11$lifeExpF)
+```
+
+Substitute the mean log scale value of ppgdp and the mean lifeExpF into the equation from the initial model.
+$log(fertility) = 3.507 - 0.06544(9.4736) - 0.02824(72.293)$ = 0.8455. $e^{0.8455}$ = 2.3291 units of fertility. 
+
+Next, recalculate the fertility value with a 25% increase in ppgdp. $log(fertility) = 3.507 - 0.06544(9.6968) - 0.02824(72.293)$ = 0.8309. $e^{0.8309}$ = 2.2953 units of fertility. 
+
+Finally, calculate the number of fertility units associated with 1.4% decrease in expected fertility. $2.3291*0.014 = 0.0326$. Subtract this number from the value calculated as before the 25% increase in ppgdp. $2.3291 - 0.0326 = 2.2965$, which is very close to the 2.2953 units of fertility calculates in the above statement. Thus, the statement is confirmed and a 25% increase in ppgdp is associated with a 1.4% increase in expected fertility. 
+
+
+## 4: Problem 4.9
+### 4.9.1
+Since Sex = 0 if a faculty member is male, substituting 1 in for Sex would give a salary of the intercept of 24697 dollars. When substituting Sex = 1 for a female faculty member, the additional term is subtracted from the salary and therefore the salary is 3340 dollars lower for a total of 21357 dollars. 
+
+### 4.9.2
+From an initial look at this model, you can see that adding in years as an additional regressor impacts the total salary. From the info in this chapter, we can replace Years by the conditional expected value of years given the other three regressors: $E\hat{(Salary|Sex)} = 18065 + 201Sex + 759E(Years|Sex)$. From there, using equation 4.21 we can get: $24697 - 3340Sex = 18065 + 201Sex + 759E(Years|Sex)$. Solving for E(Years|Sex) gives $E(Years|Sex) = 8.7 - 4.7Sex$. This shows that the number of years of experience are important for calculating salary of faculty members. More specifically, the two mean functions (4.21 and 4.22) are equivalent if, on average, a male has 8.7 years of experience and a female only has about 4 years of experience. 
+
+## 5: Problem 4.13
+```{r}
+MinnWater$perCapitaUse <- with(MinnWater, 10^6*muniUse/muniPop)
+m7 <- lm(log(perCapitaUse)~year, MinnWater)
+m8 <- lm(log(perCapitaUse)~year+muniPrecip, MinnWater)
+summary(m7)
+summary(m8)
+round(compareCoefs(m7, m8), 6)
+
+```
+Adding muniPrecip into the model with year changes the estimate of year from 0.0000563 to 0.0002155, which isn't very much. The response variable, perCapitaUse, represents how much water is used by a metropolatin area in relationship to the population of that area. Since there is no change in the estimate of year, we can conclude that there is no evidence of increasing municipal water usage per year, and instead may be explained by changes in precipitation levels. 
